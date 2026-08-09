@@ -5,7 +5,7 @@ set -e
 
 # --- Configuration ---
 # Updated to use the SSH URL instead of HTTPS
-DOTFILES_REPO="git@github.com:yourusername/dotfiles.git"
+DOTFILES_REPO="git@github.com:AlexanderBierton/dotfiles.git"
 DOTFILES_DIR="$HOME/dotfiles"
 
 echo "🚀 Starting dotfiles setup..."
