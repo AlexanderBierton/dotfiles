@@ -10,23 +10,26 @@ DOTFILES_DIR="$HOME/dotfiles"
 
 echo "🚀 Starting dotfiles setup..."
 
-# 1. Install GNU Stow based on the OS package manager
-if ! command -v stow &> /dev/null; then
-    echo "📦 GNU Stow not found. Installing..."
-    if command -v pacman &> /dev/null; then
-        sudo pacman -Sy --noconfirm stow
-    elif command -v apt-get &> /dev/null; then
-        sudo apt-get update
-        sudo apt-get install -y stow
-    elif command -v brew &> /dev/null; then
-        brew install stow
-    else
-        echo "❌ No supported package manager found (apt, pacman, or brew)."
-        exit 1
-    fi
+# 1. Install GNU Stow & Neovim Dependencies based on the OS package manager
+echo "📦 Checking and installing system dependencies..."
+if command -v pacman &> /dev/null; then
+    echo "🐧 Arch/CachyOS detected. Fetching packages via pacman..."
+    # --needed ensures it doesn't reinstall things tha already has!
+    sudo pacman -Sy --needed --noconfirm stow neovim tree-sitter tree-sitter-cli nodejs npm rust cargo ripgrep fd gcc make
+elif command -v apt-get &> /dev/null; then
+    echo "🐧 Debian/Ubuntu detected. Fetching packages via apt..."
+    sudo apt-get update
+    # Note: Ubuntu repos use 'fd-find' instead of 'fd', and 'build-essential' grabs the C compilers
+    sudo apt-get install -y stow neovim nodejs npm cargo ripgrep fd-find build-essential
+elif command -v brew &> /dev/null; then
+    echo "🍏 macOS detected. Fetching packages via brew..."
+    brew install stow neovim tree-sitter node rust ripgrep fd
 else
-    echo "✅ GNU Stow is already installed."
+    echo "❌ No supported package manager found (apt, pacman, or brew)."
+    exit 1
 fi
+
+echo "✅ System dependencies are installed and ready for action."
 
 # 2. Clone or update the dotfiles repository
 if [ -d "$DOTFILES_DIR/.git" ]; then
@@ -57,5 +60,5 @@ else
     echo "✅ TPM is already installed."
 fi
 
-echo "🎉 Setup complete! Your configs are linked."
-echo "💡 Note: Open tmux and press 'Prefix + I' to install your plugins."
+echo "🎉 Setup complete! Thy configs are linked."
+echo "💡 Note: Open tmux and press 'Prefix + I' to install thy plugins."
