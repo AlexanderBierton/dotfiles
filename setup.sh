@@ -4,7 +4,8 @@
 set -e
 
 # --- Configuration ---
-DOTFILES_REPO="https://github.com/yourusername/dotfiles.git"
+# Updated to use the SSH URL instead of HTTPS
+DOTFILES_REPO="git@github.com:yourusername/dotfiles.git"
 DOTFILES_DIR="$HOME/dotfiles"
 
 echo "🚀 Starting dotfiles setup..."
@@ -32,9 +33,9 @@ if [ -d "$DOTFILES_DIR/.git" ]; then
     echo "📂 Dotfiles repository already exists at $DOTFILES_DIR."
     echo "⬇️ Pulling latest changes..."
     cd "$DOTFILES_DIR"
-    git pull origin main
+    git pull origin trunk
 else
-    echo "📥 Cloning dotfiles repository..."
+    echo "📥 Cloning dotfiles repository via SSH..."
     git clone "$DOTFILES_REPO" "$DOTFILES_DIR"
     cd "$DOTFILES_DIR"
 fi
