@@ -235,15 +235,18 @@ require("lazy").setup({
 
 	-- [6] THE THEME
 	{
-		"gbprod/nord.nvim",
+		"ellisonleao/gruvbox.nvim",
 		lazy = false,
 		priority = 1000,
 		config = function()
-			-- 1. Build the theme's internal tables first!
-			require("nord").setup({})
+			-- Force the dark variant for the true Gruvbox experience
+			vim.o.background = "dark"
 
-			-- 2. Now it is completely safe to turn it on
-			vim.cmd.colorscheme("nord")
+			require("gruvbox").setup({
+				contrast = "hard", -- Gives thee that deep, punchy background
+			})
+
+			vim.cmd.colorscheme("gruvbox")
 		end,
 	},
 
