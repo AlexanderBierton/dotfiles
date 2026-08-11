@@ -32,15 +32,13 @@ require("lazy").setup({
 	-- [1] THE GHOST TEXT & COMPLETION
 	{
 		"saghen/blink.cmp",
-		-- build = "cargo build --release",
+		-- The new V2 build command it is crying out for:
 		build = function()
-			require("blink.cmp").build():wait(60000)
+			require("blink.cmp").build():pwait()
 		end,
 		dependencies = {
 			"saghen/blink.lib",
 			"rafamadriz/friendly-snippets",
-			-- Add this little bridge plugin so Avante can talk to Blink!
-			"Kaiser-Yang/blink-cmp-avante",
 		},
 		opts = {
 			keymap = {
@@ -56,17 +54,9 @@ require("lazy").setup({
 				ghost_text = { enabled = false },
 				menu = { draw = { columns = { { "label", "label_description", gap = 1 }, { "kind_icon", "kind" } } } },
 			},
-			-- This is the new bit tha needs:
 			sources = {
-				-- Tell Blink to include Avante in the default list of places to look
-				default = { "avante", "lsp", "path", "snippets", "buffer" },
-				providers = {
-					avante = {
-						module = "blink-cmp-avante",
-						name = "Avante",
-						opts = {},
-					},
-				},
+				-- Avante is gone, leaving thee with just the pure, lightning-fast standard tools
+				default = { "lsp", "path", "snippets", "buffer" },
 			},
 		},
 	},
@@ -75,6 +65,10 @@ require("lazy").setup({
 	{
 		"milanglacier/minuet-ai.nvim",
 		dependencies = { "nvim-lua/plenary.nvim" },
+		-- Map a key to toggle the ghost text on and off!
+		keys = {
+			{ "<leader>ta", "<cmd>Minuet virtualtext toggle<cr>", desc = "Toggle AI Ghost Text" },
+		},
 		config = function()
 			require("minuet").setup({
 				provider = "gemini",
@@ -86,12 +80,13 @@ require("lazy").setup({
 					},
 				},
 				virtualtext = {
-					auto_trigger_ft = { "*" },
+					-- An EMPTY array means it is completely DISABLED by default when tha opens a file
+					auto_trigger_ft = {},
 					keymap = {
 						accept = "<C-y>",
 						accept_line = "<C-l>",
-						next = "<C-j>", -- Swapped from ] to j
-						prev = "<C-k>", -- Swapped from [ to k (Thy Escape key is free again!)
+						next = "<C-j>",
+						prev = "<C-k>",
 						dismiss = "<C-e>",
 					},
 				},
