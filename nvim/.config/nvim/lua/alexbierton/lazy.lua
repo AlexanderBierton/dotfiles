@@ -470,6 +470,23 @@ require("lazy").setup({
 		end,
 	},
 	{ "b0o/nvim-tree-preview.lua" },
+	{
+		"folke/which-key.nvim",
+		event = "VeryLazy",
+		opts = {
+			-- Delays the popup by half a second so it doesn't flash if tha types fast
+			delay = 500,
+		},
+		keys = {
+			{
+				"<leader>?",
+				function()
+					require("which-key").show({ global = false })
+				end,
+				desc = "Show local buffer keymaps",
+			},
+		},
+	},
 })
 
 -- ========================================================================== --
