@@ -17,7 +17,6 @@ vim.opt.rtp:prepend(lazypath)
 
 -- Make sure to setup `mapleader` and `maplocalleader` before
 -- loading lazy.nvim so that mappings are correct.
--- This is also a good place to setup other settings (vim.opt)
 vim.g.mapleader = " "
 vim.g.maplocalleader = "\\"
 
@@ -25,14 +24,13 @@ vim.g.loaded_netrw = 1
 vim.g.loaded_netrwPlugin = 1
 
 -- ========================================================================== --
--- ==                            PLUGIN SETUP                              == --
+-- ==                            PLUGIN SETUP                                == --
 -- ========================================================================== --
 require("lazy").setup({
 
 	-- [1] THE GHOST TEXT & COMPLETION
 	{
 		"saghen/blink.cmp",
-		-- The new V2 build command it is crying out for:
 		build = function()
 			require("blink.cmp").build():pwait()
 		end,
@@ -55,7 +53,6 @@ require("lazy").setup({
 				menu = { draw = { columns = { { "label", "label_description", gap = 1 }, { "kind_icon", "kind" } } } },
 			},
 			sources = {
-				-- Avante is gone, leaving thee with just the pure, lightning-fast standard tools
 				default = { "lsp", "path", "snippets", "buffer" },
 			},
 		},
@@ -65,7 +62,6 @@ require("lazy").setup({
 	{
 		"milanglacier/minuet-ai.nvim",
 		dependencies = { "nvim-lua/plenary.nvim" },
-		-- Map a key to toggle the ghost text on and off!
 		keys = {
 			{ "<leader>ta", "<cmd>Minuet virtualtext toggle<cr>", desc = "Toggle AI Ghost Text" },
 		},
@@ -80,7 +76,6 @@ require("lazy").setup({
 					},
 				},
 				virtualtext = {
-					-- An EMPTY array means it is completely DISABLED by default when tha opens a file
 					auto_trigger_ft = {},
 					keymap = {
 						accept = "<C-y>",
@@ -126,48 +121,74 @@ require("lazy").setup({
 		},
 		config = function()
 			require("mason").setup()
-			require("mason-lspconfig").setup({
-				ensure_installed = { "lua_ls", "clangd", "ts_ls", "eslint" },
-			})
+
+			local lspconfig = require("lspconfig")
 			local capabilities = require("blink.cmp").get_lsp_capabilities()
-			vim.lsp.config("lua_ls", { capabilities = capabilities })
-			vim.lsp.enable("lua_ls")
 
-			-- Setup lua
-			local clangd_caps = vim.deepcopy(capabilities)
-			clangd_caps.offsetEncoding = { "utf-16" }
-
-			-- Setup C/C++
-			vim.lsp.config("clangd", { capabilities = clangd_caps })
-			vim.lsp.enable("clangd")
-
-			-- Setup Typescript
-			vim.lsp.config("ts_ls", { capabilities = capabilities })
-			vim.lsp.enable("ts_ls")
-
-			-- Setup ESLint
-			vim.lsp.config("eslint", {
-				capabilities = capabilities,
-				on_attach = function(client, bufnr)
-					vim.api.nvim_create_autocmd("BufWritePre", {
-						buffer = bufnr,
-						-- We use a callback so it waits until the exact moment of saving
-						callback = function()
-							-- pcall silently catches errors so thy saves are never blocked!
-							pcall(vim.cmd, "EslintFixAll")
-						end,
-					})
-				end,
+			require("mason-lspconfig").setup({
+				ensure_installed = { "lua_ls", "clangd", "vtsls", "eslint", "zls" },
+				handlers = {
+					-- The Default Handler
+					function(server_name)
+						lspconfig[server_name].setup({
+							capabilities = capabilities,
+						})
+					end,
+					["vtsls"] = function()
+						lspconfig.vtsls.setup({
+							capabilities = capabilities,
+							settings = {
+								typescript = {
+									inlayHints = {
+										parameterNames = { enabled = "literals" },
+										parameterTypes = { enabled = true },
+										variableTypes = { enabled = true },
+										propertyDeclarationTypes = { enabled = true },
+										functionLikeReturnTypes = { enabled = true },
+										enumMemberValues = { enabled = true },
+									},
+								},
+							},
+						})
+					end,
+					["clangd"] = function()
+						local clangd_caps = vim.deepcopy(capabilities)
+						clangd_caps.offsetEncoding = { "utf-16" }
+						lspconfig.clangd.setup({
+							capabilities = clangd_caps,
+						})
+					end,
+					["eslint"] = function()
+						lspconfig.eslint.setup({
+							capabilities = capabilities,
+							root_dir = require("lspconfig.util").root_pattern(
+								"pnpm-workspace.yaml",
+								".git",
+								".eslintrc.js",
+								"eslint.config.js"
+							),
+							on_attach = function(client, bufnr)
+								vim.api.nvim_create_autocmd("BufWritePre", {
+									buffer = bufnr,
+									callback = function()
+										pcall(vim.cmd, "EslintFixAll")
+									end,
+								})
+							end,
+						})
+					end,
+				},
 			})
-			vim.lsp.enable("eslint")
 		end,
 	},
 
 	-- [5] TELESCOPE & TREESITTER (The Essentials)
 	{
 		"nvim-telescope/telescope.nvim",
-		branch = "0.1.x",
-		dependencies = { "nvim-lua/plenary.nvim" },
+		dependencies = {
+			"nvim-lua/plenary.nvim",
+			{ "nvim-telescope/telescope-fzf-native.nvim", build = "make" },
+		},
 		keys = {
 			{ "<leader>ff", "<cmd>lua require('telescope.builtin').find_files()<cr>", desc = "Find files" },
 			{ "<leader>fg", "<cmd>lua require('telescope.builtin').live_grep()<cr>", desc = "Live grep" },
@@ -194,36 +215,56 @@ require("lazy").setup({
 					},
 				},
 				pickers = {
-					find_files = { follow = true, hidden = true },
+					find_files = {
+						hidden = true,
+						find_command = {
+							"rg",
+							"--files",
+							"--hidden",
+							"--glob",
+							"!**/.git/*",
+							"--glob",
+							"!**/node_modules/*",
+							"--glob",
+							"!**/.sst/*",
+							"--glob",
+							"!**/.react-router/*",
+						},
+					},
 				},
 			})
 		end,
 	},
 	{
 		"nvim-treesitter/nvim-treesitter",
-		branch = "master",
+		branch = "main",
 		build = ":TSUpdate",
 		config = function()
-			require("nvim-treesitter.configs").setup({
-				ensure_installed = {
-					"rust",
-					"javascript",
-					"typescript",
-					"c",
-					"cpp",
-					"lua",
-					"vim",
-					"vimdoc",
-					"query",
-					"markdown",
-					"markdown_inline",
-				},
-				sync_install = false,
-				auto_install = true,
-				highlight = {
-					enable = true,
-					additional_vim_regex_highlighting = false,
-				},
+			require("nvim-treesitter").install({
+				"lua",
+				"vim",
+				"vimdoc",
+				"javascript",
+				"typescript",
+				"tsx",
+				"html",
+				"css",
+				"json",
+				"markdown",
+				"markdown_inline",
+				"zig",
+				"c",
+				"cpp",
+				"rust",
+				"query",
+			})
+
+			vim.api.nvim_create_autocmd("FileType", {
+				pattern = "*",
+				callback = function(args)
+					pcall(vim.treesitter.start, args.buf)
+					vim.bo[args.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+				end,
 			})
 		end,
 	},
@@ -234,13 +275,10 @@ require("lazy").setup({
 		lazy = false,
 		priority = 1000,
 		config = function()
-			-- Force the dark variant for the true Gruvbox experience
 			vim.o.background = "dark"
-
 			require("gruvbox").setup({
-				contrast = "hard", -- Gives thee that deep, punchy background
+				contrast = "hard",
 			})
-
 			vim.cmd.colorscheme("gruvbox")
 		end,
 	},
@@ -250,16 +288,15 @@ require("lazy").setup({
 		"yetone/avante.nvim",
 		event = "VeryLazy",
 		lazy = false,
-		version = false, -- always pull the latest features
+		version = false,
 		opts = {
 			provider = "gemini",
 			providers = {
 				gemini = {
-					model = "gemini-2.5-flash", -- Speedy and smart for inline edits
+					model = "gemini-2.5-flash",
 				},
 			},
 		},
-		-- Avante needs to compile a small rust binary for token counting
 		build = "make",
 		dependencies = {
 			"stevearc/dressing.nvim",
@@ -267,7 +304,6 @@ require("lazy").setup({
 			"MunifTanjim/nui.nvim",
 			"nvim-tree/nvim-web-devicons",
 			{
-				-- This makes the Avante chat look beautiful with proper markdown rendering
 				"MeanderingProgrammer/render-markdown.nvim",
 				opts = {
 					file_types = { "markdown", "Avante" },
@@ -330,7 +366,6 @@ require("lazy").setup({
 	{
 		"nvim-tree/nvim-tree.lua",
 		keys = { { "<leader>e", "<cmd>NvimTreeFocus<cr>", desc = "NvimTree Focus" } },
-		-- Also load when starting with a directory (e.g. `nvim .`) so we can auto-open the tree
 		event = "VimEnter",
 		cond = function()
 			return vim.fn.argc() == 1 and vim.fn.isdirectory(vim.fn.argv(0)) == 1
@@ -393,7 +428,6 @@ require("lazy").setup({
 					vim.keymap.set("n", "<Tab>", preview.node_under_cursor, opts("Preview"))
 				end,
 			})
-			-- Auto-open tree when started with a directory (e.g. `nvim .`)
 			if vim.fn.argc() == 1 and vim.fn.isdirectory(vim.fn.argv(0)) == 1 then
 				vim.defer_fn(function()
 					vim.cmd.cd(vim.fn.argv(0))
@@ -474,7 +508,6 @@ require("lazy").setup({
 		"folke/which-key.nvim",
 		event = "VeryLazy",
 		opts = {
-			-- Delays the popup by half a second so it doesn't flash if tha types fast
 			delay = 500,
 		},
 		keys = {
@@ -490,44 +523,37 @@ require("lazy").setup({
 })
 
 -- ========================================================================== --
--- ==                            POST-INSTALL                              == --
+-- ==                            POST-INSTALL                                == --
 -- ========================================================================== --
 vim.opt.number = true
 vim.opt.relativenumber = true
 vim.opt.shiftwidth = 4
 
 -- LSP Diagnostic Keybinds
--- Space + v + d = View Diagnostic (pops open the error message)
 vim.keymap.set("n", "<leader>vd", vim.diagnostic.open_float, { desc = "View Diagnostic" })
-
--- It's also dead handy to jump between errors quickly!
--- [d = go to previous error
 vim.keymap.set("n", "[d", vim.diagnostic.goto_prev, { desc = "Previous Diagnostic" })
--- ]d = go to next error
 vim.keymap.set("n", "]d", vim.diagnostic.goto_next, { desc = "Next Diagnostic" })
-vim.keymap.set("n", "]d", vim.diagnostic.goto_next, { desc = "Next Diagnostic" })
-vim.keymap.set("n", "<leader>lr", "<cmd>LspRestart<cr>", { desc = "Restart LSP (Flush RAM)" })
+vim.keymap.set("n", "<leader>lr", "<cmd>lsp restart<cr>", { desc = "Restart LSP (Flush RAM)" })
+
+-- Clear standard highlights AND explicitly tell Noice to dismiss its floating text!
+vim.keymap.set(
+	"n",
+	"<Esc>",
+	"<cmd>nohlsearch<CR><cmd>Noice dismiss<CR><Esc>",
+	{ desc = "Clear search and Noice messages" }
+)
 
 -- ========================================================================== --
--- ==                            LSP KEYBINDS                              == --
+-- ==                            LSP KEYBINDS                                == --
 -- ========================================================================== --
--- This tells Neovim to wait until a Language Server is actually attached to the
--- file before wiring up these specific shortcuts.
 vim.api.nvim_create_autocmd("LspAttach", {
 	desc = "LSP actions",
 	callback = function(event)
 		local opts = { buffer = event.buf, remap = false }
 
-		-- Jump to definition using Telescope (brilliant for monorepos)
 		vim.keymap.set("n", "gd", "<cmd>Telescope lsp_definitions<cr>", opts)
-
-		-- Find everywhere this function/variable is used
 		vim.keymap.set("n", "gr", "<cmd>Telescope lsp_references<cr>", opts)
-
-		-- Hover documentation (Shift + K)
 		vim.keymap.set("n", "K", vim.lsp.buf.hover, opts)
-
-		-- Rename a variable across the whole project
 		vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts)
 	end,
 })
