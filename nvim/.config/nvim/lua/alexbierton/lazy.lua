@@ -126,7 +126,7 @@ require("lazy").setup({
 			local capabilities = require("blink.cmp").get_lsp_capabilities()
 
 			require("mason-lspconfig").setup({
-				ensure_installed = { "lua_ls", "clangd", "vtsls", "eslint", "zls" },
+				ensure_installed = { "lua_ls", "clangd", "vtsls", "eslint", "zls", "gopls" },
 				handlers = {
 					-- The Default Handler
 					function(server_name)
@@ -257,6 +257,9 @@ require("lazy").setup({
 				"cpp",
 				"rust",
 				"query",
+				"go",
+				"gomod",
+				"gowork",
 			})
 
 			vim.api.nvim_create_autocmd("FileType", {
